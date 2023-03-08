@@ -7,7 +7,8 @@ from langchain.vectorstores import FAISS
 from langchain.chains import VectorDBQA
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.document_loaders import UnstructuredPDFLoader
-from langchain.document_loaders import UnstructuredHTMLLoader
+"""from langchain.document_loaders import UnstructuredHTMLLoader"""
+from langchain.document_loaders import UnstructuredURLLoader
 
 @st.cache_data
 def split_pdf(fpath,chunk_chars=4000,overlap=50):
@@ -29,30 +30,34 @@ def split_pdf(fpath,chunk_chars=4000,overlap=50):
     return splits
 
 @st.cache_data
-def split_html(links,chunk_chars=4000,overlap=50):
+def split_html(link_list,chunk_chars=4000,overlap=50):
     st.info("`Reading and splitting html ...`")
-    link_list = links.split(" ")
+    links = link_list.split(" ")
+    loader = UnstructuredURLLoader(urls=links)
+    docs = loader.load()
+
+
     splits = []
     split = ""
 
-    for i, url in enumerate(link_list):
-        url=url.strip()
-        st.info("`Evaluating ` {url}")
-        loader = UnstructuredHTMLLoader(url)
-        data = loader.load()
+    for i, doc in enumerate(docs):
+
         max_length = 50
-        if len(data.page_content) > max_length:
-            truncated_string = data.page_content[:max_length] + "..."
+        if len(doc.page_content) > max_length:
+            truncated_string = doc.page_content[:max_length] + "..."
         else:
-            truncated_string = data.page_content
+            truncated_string = doc.page_content
         st.info("`Found text from html ` {truncated_string}")
-        split += data.page_content
+        split += doc.page_content
         while len(split) > chunk_chars:
             splits.append(split[:chunk_chars])
             split = split[chunk_chars - overlap :]
     if len(split) > overlap:
         splits.append(split[:chunk_chars])
+    splitCount = len(splits)
+    st.info(f"Found {splitCount} split(s)")
     return splits
+
 
 @st.cache_resource
 def create_ix(splits):
