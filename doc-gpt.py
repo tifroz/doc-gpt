@@ -7,6 +7,7 @@ from langchain.vectorstores import FAISS
 from langchain.chains import VectorDBQA
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.document_loaders import UnstructuredPDFLoader
+from langchain.document_loaders import UnstructuredHTMLLoader
 
 @st.cache_data
 def split_pdf(fpath,chunk_chars=4000,overlap=50):
@@ -20,6 +21,32 @@ def split_pdf(fpath,chunk_chars=4000,overlap=50):
     split = ""
     for i, page in enumerate(pdfReader.pages):
         split += page.extract_text()
+        while len(split) > chunk_chars:
+            splits.append(split[:chunk_chars])
+            split = split[chunk_chars - overlap :]
+    if len(split) > overlap:
+        splits.append(split[:chunk_chars])
+    return splits
+
+@st.cache_data
+def split_html(links,chunk_chars=4000,overlap=50):
+    st.info("`Reading and splitting html ...`")
+    link_list = links.split(" ")
+    splits = []
+    split = ""
+
+    for i, url in enumerate(link_list):
+        url=url.strip()
+        st.info("`Evaluating ` {url}")
+        loader = UnstructuredHTMLLoader(url)
+        data = loader.load()
+        max_length = 50
+        if len(data.page_content) > max_length:
+            truncated_string = string[:max_length] + "..."
+        else:
+            truncated_string = data.page_content
+        st.info("`Found text from html ` {truncated_string}")
+        split += data.page_content
         while len(split) > chunk_chars:
             splits.append(split[:chunk_chars])
             split = split[chunk_chars - overlap :]
@@ -46,11 +73,15 @@ st.sidebar.info("`Larger chunk size can produce better answers, but may hit Chat
 
 # App 
 st.header("`doc-gpt`")
-st.info("`Hello! I am a ChatGPT connected to whatever document you upload.`")
+st.info("`Hello! I am a ChatGPT connected to any pdf you upload or web page you link.`")
 uploaded_file_pdf = st.file_uploader("`Upload PDF File:` ", type = ['pdf'] , accept_multiple_files=False)
-if uploaded_file_pdf and api_key:
+linked_webpages = st.text_input("`Enter URL list (use space as separation):` ")
+if (linked_webpages or uploaded_file_pdf) and api_key:
     # Split and create index
-    d=split_pdf(uploaded_file_pdf,chunk_chars)
+    if uploaded_file_pdf:
+        d=split_pdf(uploaded_file_pdf,chunk_chars)
+    else:
+        d=split_html(linked_webpages, chunk_chars)
     if d:
         ix=create_ix(d)
         # Use ChatGPT with index QA chain
