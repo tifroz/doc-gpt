@@ -4,3 +4,4 @@ pypdf
 faiss-cpu
 streamlit
 watchdog
+unstructured
