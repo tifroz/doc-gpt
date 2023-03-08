@@ -42,7 +42,7 @@ def split_html(links,chunk_chars=4000,overlap=50):
         data = loader.load()
         max_length = 50
         if len(data.page_content) > max_length:
-            truncated_string = string[:max_length] + "..."
+            truncated_string = data.page_content[:max_length] + "..."
         else:
             truncated_string = data.page_content
         st.info("`Found text from html ` {truncated_string}")
@@ -81,7 +81,7 @@ if (linked_webpages or uploaded_file_pdf) and api_key:
     if uploaded_file_pdf:
         d=split_pdf(uploaded_file_pdf,chunk_chars)
     else:
-        d=split_html(linked_webpages, chunk_chars)
+        d=split_html(linked_webpages,chunk_chars)
     if d:
         ix=create_ix(d)
         # Use ChatGPT with index QA chain
