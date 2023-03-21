@@ -10,6 +10,9 @@ from langchain.document_loaders import UnstructuredPDFLoader
 """from langchain.document_loaders import UnstructuredHTMLLoader"""
 from langchain.document_loaders import UnstructuredURLLoader
 
+from langchain.schema import SystemChatMessage
+from langchain.schema import HumanChatMessage
+
 @st.cache_data
 def split_pdf(fpath,chunk_chars=4000,overlap=50):
     """
@@ -47,7 +50,7 @@ def split_html(link_list,chunk_chars=4000,overlap=50):
             truncated_string = doc.page_content[:max_length] + "..."
         else:
             truncated_string = doc.page_content
-        st.info("`Found text from html ` {truncated_string}")
+        st.info(f"`Found text from html ` {truncated_string}")
         split += doc.page_content
         while len(split) > chunk_chars:
             splits.append(split[:chunk_chars])
@@ -80,7 +83,7 @@ st.sidebar.info("`Larger chunk size can produce better answers, but may hit Chat
 st.header("`doc-gpt`")
 st.info("`Hello! I am a ChatGPT connected to any pdf you upload or web page you link.`")
 uploaded_file_pdf = st.file_uploader("`Upload PDF File:` ", type = ['pdf'] , accept_multiple_files=False)
-linked_webpages = st.text_input("`Enter URL list (use space as separation):` ")
+linked_webpages = st.text_input("`Enter space-separated URL list:` ", "https://webtv.swishly.com/iwebtv/app/home-v1.8.116/dist/faqs-webtv.html")
 if (linked_webpages or uploaded_file_pdf) and api_key:
     # Split and create index
     if uploaded_file_pdf:
@@ -90,7 +93,8 @@ if (linked_webpages or uploaded_file_pdf) and api_key:
     if d:
         ix=create_ix(d)
         # Use ChatGPT with index QA chain
-        llm = OpenAIChat(temperature=0)
+        llm = OpenAIChat(temperature=0, model_name="gpt-4")
+        llm([SystemMessage(content="You are a helpful chatbot, if the response includes multiple actions to try, tell the user to perform one action and say 'let me know if this did not fix the issue'")])
         chain = VectorDBQA.from_chain_type(llm, chain_type="stuff", vectorstore=ix)
         query = st.text_input("`Please ask a question:` ","What is this document about?")
         try:
