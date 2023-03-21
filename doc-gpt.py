@@ -10,8 +10,11 @@ from langchain.document_loaders import UnstructuredPDFLoader
 """from langchain.document_loaders import UnstructuredHTMLLoader"""
 from langchain.document_loaders import UnstructuredURLLoader
 
-from langchain.schema import SystemChatMessage
-from langchain.schema import HumanChatMessage
+from langchain.schema import (
+    AIMessage,
+    HumanMessage,
+    SystemMessage
+)
 
 @st.cache_data
 def split_pdf(fpath,chunk_chars=4000,overlap=50):
